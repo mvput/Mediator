@@ -1,4 +1,4 @@
-﻿using Mediator.SourceGenerator.Extensions;
+using Mediator.SourceGenerator.Extensions;
 
 namespace Mediator.SourceGenerator;
 
