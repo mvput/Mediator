@@ -39,6 +39,11 @@ internal sealed record RequestMessageHandlerWrapperModel
         IsStreaming
             ? "global::Mediator.IStreamPipelineBehavior<TRequest, TResponse>"
             : "global::Mediator.IPipelineBehavior<TRequest, TResponse>";
+
+    public string UnitMessageHandlerDelegateName =>
+        $"global::Mediator.MessageHandlerDelegate<TRequest, global::Mediator.Unit>";
+    public string UnitPipelineHandlerTypeName => "global::Mediator.IPipelineBehavior<TRequest, global::Mediator.Unit>";
+
     public string ReturnTypeName =>
         IsStreaming
             ? "global::System.Collections.Generic.IAsyncEnumerable<TResponse>"

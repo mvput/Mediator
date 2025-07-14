@@ -18,6 +18,17 @@ public interface ISender
     ValueTask<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Send request.
+    /// Throws <see cref="ArgumentNullException"/> if message is null.
+    /// Throws <see cref="InvalidMessageException"/> if request does not implement <see cref="IRequest{TResponse}"/>.
+    /// Throws <see cref="MissingMessageHandlerException"/> if no handler is registered.
+    /// </summary>
+    /// <param name="request">Incoming request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Awaitable task</returns>
+    ValueTask Send(IRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Send command.
     /// Throws <see cref="ArgumentNullException"/> if message is null.
     /// Throws <see cref="InvalidMessageException"/> if command does not implement <see cref="ICommand{TResponse}"/>.
@@ -27,6 +38,17 @@ public interface ISender
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Awaitable task</returns>
     ValueTask<TResponse> Send<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send command.
+    /// Throws <see cref="ArgumentNullException"/> if message is null.
+    /// Throws <see cref="InvalidMessageException"/> if command does not implement <see cref="ICommand{TResponse}"/>.
+    /// Throws <see cref="MissingMessageHandlerException"/> if no handler is registered.
+    /// </summary>
+    /// <param name="command">Incoming command</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Awaitable task</returns>
+    ValueTask Send(ICommand command, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Send query.

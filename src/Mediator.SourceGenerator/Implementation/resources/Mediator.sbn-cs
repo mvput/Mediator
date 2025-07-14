@@ -68,7 +68,7 @@ namespace Microsoft.Extensions.DependencyInjection
             {{~ for message in RequestMessages ~}}
             {{ message.Handler.ServiceRegistration }}
             {{~ if message.IsUnitTypeResponse ~}}
-            services.Add(new SD(typeof(global::{{ InternalsNamespace }}.I{{ message.MessageType }}UnitHandler<{{ message.FullName }}, {{ message.ResponseFullName }}>), typeof(global::{{ InternalsNamespace }}.{{ message.MessageType }}UnitHandler<{{ message.FullName }}, {{ message.ResponseFullName }}>), {{ ServiceLifetime }}));
+            services.Add(new SD(typeof(global::{{ InternalsNamespace }}.I{{ message.MessageType }}UnitHandler<{{ message.FullName }}>), typeof(global::{{ InternalsNamespace }}.{{ message.MessageType }}UnitHandler<{{ message.FullName }}>), {{ ServiceLifetime }}));
             services.Add(new SD(typeof(global::Mediator.I{{ message.MessageType }}Handler<{{ message.FullName }}>), typeof({{ message.Handler.FullName }}), {{ ServiceLifetime }}));
             {{~ else ~}}
             services.Add(new SD(typeof(global::Mediator.I{{ message.MessageType }}Handler<{{ message.FullName }}, {{ message.ResponseFullName }}>), typeof({{ message.Handler.FullName }}), {{ ServiceLifetime }}));
@@ -176,14 +176,14 @@ namespace {{ InternalsNamespace }}
     }
 
     {{~ if wrapperType.SupportsUnitType ~}}
-    internal interface I{{ wrapperType.MessageType }}UnitHandler<TRequest, TResponse> where TRequest : global::Mediator.I{{ wrapperType.MessageType }}
+    internal interface I{{ wrapperType.MessageType }}UnitHandler<TRequest> where TRequest : global::Mediator.I{{ wrapperType.MessageType }}
     {
-         global::System.Threading.Tasks.ValueTask<TResponse> Handle(TRequest request, global::System.Threading.CancellationToken cancellationToken);
+         global::System.Threading.Tasks.ValueTask<global::Mediator.Unit> Handle(TRequest request, global::System.Threading.CancellationToken cancellationToken);
     }
 
     internal interface {{ wrapperType.UnitInterfaceTypeNameWithGenericParameter }} : {{ wrapperType.HandlerBase }}
     {
-        {{ wrapperType.ReturnTypeName }} Handle(
+        global::System.Threading.Tasks.ValueTask Handle(
             {{~ if !ServiceLifetimeIsSingleton ~}}
             global::{{ MediatorNamespace }}.Mediator mediator,
             {{~ end ~}}
@@ -192,13 +192,15 @@ namespace {{ InternalsNamespace }}
         );
     }
 
-    internal sealed class {{ wrapperType.MessageType }}UnitHandler<TRequest, TResponse>(global::System.IServiceProvider sp) : I{{ wrapperType.MessageType }}UnitHandler<TRequest, TResponse>  where TRequest : global::Mediator.I{{ wrapperType.MessageType }}
+    internal sealed class {{ wrapperType.MessageType }}UnitHandler<TRequest> : I{{ wrapperType.MessageType }}UnitHandler<TRequest>  where TRequest : global::Mediator.I{{ wrapperType.MessageType }}
     {
-        public async global::System.Threading.Tasks.ValueTask<TResponse> Handle(TRequest request, global::System.Threading.CancellationToken cancellationToken)
+        public async global::System.Threading.Tasks.ValueTask<global::Mediator.Unit> Handle(TRequest request, global::System.Threading.CancellationToken cancellationToken)
         {
-            var innerHandler = sp.GetRequiredService<global::Mediator.I{{ wrapperType.MessageType }}Handler<TRequest>>();
-            await innerHandler.Handle(request, cancellationToken);
-            return default!;
+           // var innerHandler = sp.GetRequiredService<global::Mediator.I{{ wrapperType.MessageType }}Handler<TRequest>>();
+           // await innerHandler.Handle(request, cancellationToken);
+           // return default!;
+
+           return global::Mediator.Unit.Value;
         }
     }
     {{~ end ~}}
@@ -345,31 +347,31 @@ namespace {{ InternalsNamespace }}
         where TRequest : global::Mediator.I{{ wrapperType.MessageType }} 
     {
         {{~ if ServiceLifetimeIsSingleton ~}}
-        private {{ wrapperType.MessageHandlerDelegateName }} _rootHandler = null!;
+        private {{ wrapperType.UnitMessageHandlerDelegateName }} _rootHandler = null!;
 
         public {{ wrapperType.UnitTypeNameWithGenericParameters }} Init(
             global::{{ InternalsNamespace }}.ContainerMetadata containerMetadata,
             global::System.IServiceProvider sp
         )
         {
-            var concreteHandler = sp.GetRequiredService<I{{ wrapperType.MessageType }}UnitHandler<TRequest, TResponse>>();
-            var pipelineBehaviours = sp.GetServices<{{ wrapperType.PipelineHandlerTypeName }}>();
-            var handler = ({{ wrapperType.MessageHandlerDelegateName }})concreteHandler.Handle;
+            var concreteHandler = sp.GetRequiredService<I{{ wrapperType.MessageType }}UnitHandler<TRequest>>();
+            var pipelineBehaviours = sp.GetServices<{{ wrapperType.UnitPipelineHandlerTypeName }}>();
+            var handler = ({{ wrapperType.UnitMessageHandlerDelegateName }})concreteHandler.Handle;
 
-            {{ wrapperType.PipelineHandlerTypeName }}[] pipelineBehavioursArray;
+            {{ wrapperType.UnitPipelineHandlerTypeName }}[] pipelineBehavioursArray;
             if (containerMetadata.ServicesUnderlyingTypeIsArray)
             {
                 global::System.Diagnostics.Debug.Assert(
-                    pipelineBehaviours is {{ wrapperType.PipelineHandlerTypeName }}[]
+                    pipelineBehaviours is {{ wrapperType.UnitPipelineHandlerTypeName }}[]
                 );
-                pipelineBehavioursArray = global::System.Runtime.CompilerServices.Unsafe.As<{{ wrapperType.PipelineHandlerTypeName }}[]>(
+                pipelineBehavioursArray = global::System.Runtime.CompilerServices.Unsafe.As<{{ wrapperType.UnitPipelineHandlerTypeName }}[]>(
                     pipelineBehaviours
                 );
             }
             else
             {
                 global::System.Diagnostics.Debug.Assert(
-                    pipelineBehaviours is not {{ wrapperType.PipelineHandlerTypeName }}[]
+                    pipelineBehaviours is not {{ wrapperType.UnitPipelineHandlerTypeName }}[]
                 );
                 pipelineBehavioursArray = pipelineBehaviours.ToArray();
             }
@@ -387,7 +389,7 @@ namespace {{ InternalsNamespace }}
         }
         {{~ end ~}}
 
-        public {{ wrapperType.ReturnTypeName }} Handle(
+        public global::System.Threading.Tasks.ValueTask Handle(
             {{~ if !ServiceLifetimeIsSingleton ~}}
             global::{{ MediatorNamespace }}.Mediator mediator,
             {{~ end ~}}
@@ -398,17 +400,17 @@ namespace {{ InternalsNamespace }}
             {{~ if ServiceLifetimeIsSingleton ~}}
             var handler = _rootHandler;
             {{~ else ~}}
-            var concreteHandler = mediator.Services.GetRequiredService<I{{ wrapperType.MessageType }}UnitHandler<TRequest, TResponse>>();
-            var pipelineBehaviours = mediator.Services.GetServices<{{ wrapperType.PipelineHandlerTypeName }}>();
-            var handler = ({{ wrapperType.MessageHandlerDelegateName }})concreteHandler.Handle;
+            var concreteHandler = mediator.Services.GetRequiredService<I{{ wrapperType.MessageType }}UnitHandler<TRequest>>();
+            var pipelineBehaviours = mediator.Services.GetServices<{{ wrapperType.UnitPipelineHandlerTypeName }}>();
+            var handler = ({{ wrapperType.UnitMessageHandlerDelegateName }})concreteHandler.Handle;
 
-            {{ wrapperType.PipelineHandlerTypeName }}[] pipelineBehavioursArray;
+            {{ wrapperType.UnitPipelineHandlerTypeName }}[] pipelineBehavioursArray;
             if (mediator.ServicesUnderlyingTypeIsArray)
             {
                 global::System.Diagnostics.Debug.Assert(
-                    pipelineBehaviours is {{ wrapperType.PipelineHandlerTypeName }}[]
+                    pipelineBehaviours is {{ wrapperType.UnitPipelineHandlerTypeName }}[]
                 );
-                pipelineBehavioursArray = global::System.Runtime.CompilerServices.Unsafe.As<{{ wrapperType.PipelineHandlerTypeName }}[]>(
+                pipelineBehavioursArray = global::System.Runtime.CompilerServices.Unsafe.As<{{ wrapperType.UnitPipelineHandlerTypeName }}[]>(
                     pipelineBehaviours
                 );
                 for (int i = pipelineBehavioursArray.Length - 1; i >= 0; i--)
@@ -422,7 +424,7 @@ namespace {{ InternalsNamespace }}
             else
             {
                 global::System.Diagnostics.Debug.Assert(
-                    pipelineBehaviours is not {{ wrapperType.PipelineHandlerTypeName }}[]
+                    pipelineBehaviours is not {{ wrapperType.UnitPipelineHandlerTypeName }}[]
                 );
                 foreach (var pipeline in pipelineBehaviours.Reverse())
                 {
@@ -432,10 +434,10 @@ namespace {{ InternalsNamespace }}
                 }
             }
             {{~ end ~}}
-            return handler(request, cancellationToken);
+            return new global::System.Threading.Tasks.ValueTask(handler(request, cancellationToken).AsTask());
         }
 
-        public {{ wrapperType.ReturnTypeName }} Handle(
+        public global::System.Threading.Tasks.ValueTask Handle(
             {{~ if !ServiceLifetimeIsSingleton ~}}
             global::{{ MediatorNamespace }}.Mediator mediator,
             {{~ end ~}}
@@ -443,7 +445,7 @@ namespace {{ InternalsNamespace }}
             global::System.Threading.CancellationToken cancellationToken
         )
         {
-            return Handle({{ if !ServiceLifetimeIsSingleton; "mediator, "; end; }}(TRequest)request, cancellationToken);
+            return new global::System.Threading.Tasks.ValueTask(Handle({{ if !ServiceLifetimeIsSingleton; "mediator, "; end; }}(TRequest)request, cancellationToken).AsTask());
         }
 
         {{~ if wrapperType.IsStreaming ~}}
@@ -467,7 +469,7 @@ namespace {{ InternalsNamespace }}
             global::System.Threading.CancellationToken cancellationToken
         )
         {
-            return await Handle({{ if !ServiceLifetimeIsSingleton; "mediator, "; end; }}(TRequest)request, cancellationToken);
+            return global::System.Threading.Tasks.ValueTask.FromResult<object?>(Handle({{ if !ServiceLifetimeIsSingleton; "mediator, "; end; }}(TRequest)request, cancellationToken));
         }
         {{~ end ~}}
     }
@@ -1236,6 +1238,91 @@ namespace {{ MediatorNamespace }}
         }
 
         /// <summary>
+        /// Send request.
+        /// Throws <see cref="global::System.ArgumentNullException"/> if message is null.
+        /// Throws <see cref="global::Mediator.InvalidMessageException"/> if request does not implement <see cref="global::Mediator.IRequest{TResponse}"/>.
+        /// Throws <see cref="global::Mediator.MissingMessageHandlerException"/> if no handler is registered.
+        /// </summary>
+        /// <param name="request">Incoming request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Awaitable task</returns>
+        public global::System.Threading.Tasks.ValueTask Send(
+            global::Mediator.IRequest request,
+            global::System.Threading.CancellationToken cancellationToken = default
+        )
+        {
+            {{~ if HasRequests ~}}
+            {{~ if HasManyRequests ~}}
+            var handlerObj = GetRequestHandler(request);
+            if (handlerObj is global::{{ InternalsNamespace }}.IRequestHandlerBase<global::Mediator.Unit>)
+            {
+                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.IRequestHandlerBase<global::Mediator.Unit>>(ref handlerObj);
+                return new global::System.Threading.Tasks.ValueTask( handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}request, cancellationToken).AsTask());
+            }
+            return SendAsync(request, handlerObj, cancellationToken);
+            {{~ else ~}}
+            switch (request)
+            {
+                {{~ for message in IRequestMessages ~}}
+                {{~ if message.IsUnitTypeResponse ~}}
+                case {{ message.FullName }} r:
+                {
+                    return SendAsync(request, cancellationToken);
+                }
+                {{~ end ~}}
+                {{~ end ~}}
+                default:
+                {
+                    ThrowInvalidRequest(request, nameof(request));
+                    return default;
+                }
+            }
+            {{~ end ~}}
+            {{~ else ~}}
+            ThrowInvalidRequest(request, nameof(request));
+            return default;
+            {{~ end ~}}
+        }
+
+        private async global::System.Threading.Tasks.ValueTask SendAsync(
+            global::Mediator.IRequest request,
+            {{~ if HasManyRequests ~}}
+            object handlerObj,
+            {{~ end ~}}
+            global::System.Threading.CancellationToken cancellationToken = default
+        )
+        {
+            {{~ if HasRequests ~}}
+            {{~ if HasManyRequests ~}}
+            var handler = global::System.Runtime.CompilerServices.Unsafe.As<global::{{ InternalsNamespace }}.IMessageHandlerBase>(handlerObj);
+            _ = await handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}request, cancellationToken);
+            return;
+            {{~ else ~}}
+            switch (request)
+            {
+                {{~ for message in IRequestMessages ~}}
+                {{~ if message.IsUnitTypeResponse ~}}
+                case {{ message.FullName }} r:
+                {
+                    _ = await Send(r, cancellationToken);
+                    return;
+                }
+                {{~ end ~}}
+                {{~ end ~}}
+                default:
+                {
+                    ThrowInvalidRequest(request, nameof(request));
+                    return ;
+                }
+            }
+            {{~ end ~}}
+            {{~ else ~}}
+            ThrowInvalidRequest(request, nameof(request));
+            return;
+            {{~ end ~}}
+        }
+
+        /// <summary>
         /// Create stream for request.
         /// Throws <see cref="global::System.ArgumentNullException"/> if message is null.
         /// Throws <see cref="global::Mediator.InvalidMessageException"/> if request does not implement <see cref="global::Mediator.IStreamRequest{TResponse}"/>.
@@ -1379,6 +1466,90 @@ namespace {{ MediatorNamespace }}
             {{~ else ~}}
             ThrowInvalidCommand(command, nameof(command));
             return default!;
+            {{~ end ~}}
+        }
+
+         /// <summary>
+        /// Send command.
+        /// Throws <see cref="global::System.ArgumentNullException"/> if message is null.
+        /// Throws <see cref="global::Mediator.InvalidMessageException"/> if command does not implement <see cref="global::Mediator.ICommand{TResponse}"/>.
+        /// Throws <see cref="global::Mediator.MissingMessageHandlerException"/> if no handler is registered.
+        /// </summary>
+        /// <param name="command">Incoming command</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Awaitable task</returns>
+        public global::System.Threading.Tasks.ValueTask Send(
+            global::Mediator.ICommand command,
+            global::System.Threading.CancellationToken cancellationToken = default
+        )
+        {
+            {{~ if HasCommands ~}}
+            {{~ if HasManyCommands ~}}
+            var handlerObj = GetCommandHandler(command);
+            if (handlerObj is global::{{ InternalsNamespace }}.ICommandUnitHandlerBase<global::Mediator.Unit>)
+            {
+                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.ICommandUnitHandlerBase<global::Mediator.Unit>>(ref handlerObj);
+                return new global::System.Threading.Tasks.ValueTask( handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}command, cancellationToken).AsTask());
+            }
+            return SendAsync(command, handlerObj, cancellationToken);
+            {{~ else ~}}
+            switch (command)
+            {
+                {{~ for message in ICommandMessages ~}}
+                {{~ if message.IsUnitTypeResponse ~}}
+                case {{ message.FullName }} r:
+                {
+                    return SendAsync(command, cancellationToken);
+                }
+                {{~ end ~}}
+                {{~ end ~}}
+                default:
+                {
+                    ThrowInvalidCommand(command, nameof(command));
+                    return default;
+                }
+            }
+            {{~ end ~}}
+            {{~ else ~}}
+            ThrowInvalidCommand(command, nameof(command));
+            return default;
+            {{~ end ~}}
+        }
+
+        private async global::System.Threading.Tasks.ValueTask SendAsync(
+            global::Mediator.ICommand command,
+            {{~ if HasManyCommands ~}}
+            object handlerObj,
+            {{~ end ~}}
+            global::System.Threading.CancellationToken cancellationToken = default
+        )
+        {
+            {{~ if HasCommands ~}}
+            {{~ if HasManyCommands ~}}
+            var handler = global::System.Runtime.CompilerServices.Unsafe.As<global::{{ InternalsNamespace }}.IMessageHandlerBase>(handlerObj);
+            _ = await handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}command, cancellationToken);
+            return;
+            {{~ else ~}}
+            switch (command)
+            {
+                {{~ for message in ICommandMessages ~}}
+                {{~ if message.IsUnitTypeResponse ~}}
+                case {{ message.FullName }} r:
+                {
+                    return;
+                }
+                {{~ end ~}}
+                {{~ end ~}}
+                default:
+                {
+                    ThrowInvalidCommand(command, nameof(command));
+                    return ;
+                }
+            }
+            {{~ end ~}}
+            {{~ else ~}}
+            ThrowInvalidCommand(command, nameof(command));
+            return ;
             {{~ end ~}}
         }
 
