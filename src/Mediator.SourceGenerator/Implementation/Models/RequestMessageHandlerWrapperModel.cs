@@ -2,14 +2,21 @@ namespace Mediator.SourceGenerator;
 
 internal sealed record RequestMessageHandlerWrapperModel
 {
-    public RequestMessageHandlerWrapperModel(string messageType, CompilationAnalyzer analyzer)
+    public RequestMessageHandlerWrapperModel(
+        string messageType,
+        CompilationAnalyzer analyzer,
+        bool supportsUnitType = false
+    )
     {
         FullNamespace = $"global::{analyzer.MediatorNamespace}.Internals";
         MessageType = messageType;
         IsStreaming = messageType.StartsWith("Stream", StringComparison.Ordinal);
         TypeName = $"{messageType}HandlerWrapper";
-        TypeNameWithGenericParameters = $"{TypeName}<TRequest, TResponse>";
+        TypeNameWithGenericParameters = $"{messageType}HandlerWrapper<TRequest, TResponse>";
+        UnitTypeNameWithGenericParameters = $"{messageType}UnitHandlerWrapper<TRequest, TResponse>";
+        SupportsUnitType = supportsUnitType;
         InterfaceTypeNameWithGenericParameter = $"I{messageType}HandlerBase<TResponse>";
+        UnitInterfaceTypeNameWithGenericParameter = $"I{messageType}UnitHandlerBase<TResponse>";
     }
 
     public string FullNamespace { get; }
@@ -17,7 +24,13 @@ internal sealed record RequestMessageHandlerWrapperModel
     public string TypeName { get; }
     public bool IsStreaming { get; }
     public string TypeNameWithGenericParameters { get; }
+
+    public string UnitTypeNameWithGenericParameters { get; }
+
+    public bool SupportsUnitType { get; }
     public string InterfaceTypeNameWithGenericParameter { get; }
+    public string UnitInterfaceTypeNameWithGenericParameter { get; }
+
     public string MessageHandlerDelegateName =>
         IsStreaming
             ? $"global::Mediator.StreamHandlerDelegate<TRequest, TResponse>"

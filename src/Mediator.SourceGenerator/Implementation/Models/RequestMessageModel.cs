@@ -19,7 +19,8 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
         ITypeSymbol responseSymbol,
         string messageType,
         RequestMessageHandlerModel? handler,
-        RequestMessageHandlerWrapperModel wrapperType
+        RequestMessageHandlerWrapperModel wrapperType,
+        bool isUnitTypeResponse
     )
         : base(symbol)
     {
@@ -48,8 +49,9 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
         Handler = handler;
 
         var fullHandlerWrapperTypeName = $"{wrapperType.FullNamespace}.{wrapperType.TypeName}";
-        HandlerWrapperTypeNameWithGenericTypeArguments =
-            $"{fullHandlerWrapperTypeName}<{FullName}, {ResponseFullName}>";
+        HandlerWrapperTypeNameWithGenericTypeArguments = isUnitTypeResponse
+            ? $"{wrapperType.FullNamespace}.{wrapperType.MessageType}UnitHandlerWrapper<{FullName}, {ResponseFullName}>"
+            : $"{fullHandlerWrapperTypeName}<{FullName}, {ResponseFullName}>";
 
         var identifierFullName = symbol
             .GetTypeSymbolFullName(withGlobalPrefix: false, includeTypeParameters: false)
@@ -61,6 +63,7 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
         ReturnType = isStreaming
             ? $"global::System.Collections.Generic.IAsyncEnumerable<{ResponseFullName}>"
             : $"global::System.Threading.Tasks.ValueTask<{ResponseFullName}>";
+        IsUnitTypeResponse = isUnitTypeResponse;
     }
 
     public string MessageType { get; }
@@ -68,6 +71,7 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
     public RequestMessageHandlerModel? Handler { get; }
     public bool ResponseIsValueType { get; }
     public string ResponseFullName { get; }
+    public bool IsUnitTypeResponse { get; }
     public string ResponseFullNameWithoutReferenceNullability { get; }
     public string HandlerWrapperTypeNameWithGenericTypeArguments { get; }
     public string HandlerWrapperPropertyName { get; }

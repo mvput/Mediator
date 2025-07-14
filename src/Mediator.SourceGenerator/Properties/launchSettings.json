@@ -2,7 +2,7 @@
   "profiles": {
     "Mediator.SourceGenerator": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\..\\samples\\Console\\Console.csproj"
+      "targetProject": "..\\..\\samples\\basic\\Console\\Console.csproj"
     }
   }
 }

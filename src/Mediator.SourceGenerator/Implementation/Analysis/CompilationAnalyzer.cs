@@ -118,9 +118,9 @@ internal sealed class CompilationAnalyzer
 
             RequestMessageHandlerWrappers = new RequestMessageHandlerWrapperModel[]
             {
-                new RequestMessageHandlerWrapperModel("Request", this),
+                new RequestMessageHandlerWrapperModel("Request", this, true),
                 new RequestMessageHandlerWrapperModel("StreamRequest", this),
-                new RequestMessageHandlerWrapperModel("Command", this),
+                new RequestMessageHandlerWrapperModel("Command", this, true),
                 new RequestMessageHandlerWrapperModel("StreamCommand", this),
                 new RequestMessageHandlerWrapperModel("Query", this),
                 new RequestMessageHandlerWrapperModel("StreamQuery", this),
@@ -344,7 +344,8 @@ internal sealed class CompilationAnalyzer
                         m.ResponseSymbol,
                         m.MessageType,
                         m.Handler?.ToModel(),
-                        m.WrapperType
+                        m.WrapperType,
+                        m.ResponseSymbol.Equals(_unitSymbol, SymbolEqualityComparer.Default)
                     )
                 ),
                 ToModelsSortedByInheritanceDepth(_notificationMessages, m => m.ToModel()),

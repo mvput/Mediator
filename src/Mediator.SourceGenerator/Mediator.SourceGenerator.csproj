@@ -9,6 +9,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <NoPackageAnalysis>true</NoPackageAnalysis>
+    <IsRoslynComponent>true</IsRoslynComponent>
     <DevelopmentDependency>true</DevelopmentDependency>
     <PackageScribanIncludeSource>true</PackageScribanIncludeSource>
     <PolySharpExcludeGeneratedTypes>System.Runtime.CompilerServices.ModuleInitializerAttribute</PolySharpExcludeGeneratedTypes>
