@@ -6,12 +6,15 @@ internal sealed class RequestMessage : SymbolMetadata<RequestMessage>
         INamedTypeSymbol symbol,
         ITypeSymbol responseSymbol,
         string messageType,
-        CompilationAnalyzer analyzer
+        CompilationAnalyzer analyzer,
+        bool isNoResponse
     )
         : base(symbol, analyzer)
     {
         ResponseSymbol = responseSymbol;
-        WrapperType = analyzer.RequestMessageHandlerWrappers.Single(w => w.MessageType == messageType);
+        WrapperType = isNoResponse
+            ? analyzer.RequestNoResponseMessageHandlerWrappers.Single(w => w.MessageType == messageType)
+            : analyzer.RequestMessageHandlerWrappers.Single(w => w.MessageType == messageType);
         MessageType = messageType;
     }
 
@@ -19,7 +22,7 @@ internal sealed class RequestMessage : SymbolMetadata<RequestMessage>
 
     public ITypeSymbol ResponseSymbol { get; }
 
-    public RequestMessageHandlerWrapperModel WrapperType { get; }
+    public IRequestMessageHandlerWrapperModel WrapperType { get; }
 
     public string MessageType { get; }
 

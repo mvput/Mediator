@@ -1,4 +1,4 @@
-﻿namespace Mediator.SourceGenerator;
+namespace Mediator.SourceGenerator;
 
 internal sealed record CompilationModel
 {
@@ -23,7 +23,8 @@ internal sealed record CompilationModel
         TotalMessages = 0;
         NotificationPublisherType = new("global::Mediator.ForeachAwaitPublisher", "ForeachAwaitPublisher");
 
-        RequestMessageHandlerWrappers = ImmutableEquatableArray<RequestMessageHandlerWrapperModel>.Empty;
+        RequestMessageHandlerWrappers = ImmutableEquatableArray<IRequestMessageHandlerWrapperModel>.Empty;
+        RequestNoResponseMessageHandlerWrappers = ImmutableEquatableArray<IRequestMessageHandlerWrapperModel>.Empty;
         RequestMessages = ImmutableEquatableArray<RequestMessageModel>.Empty;
         NotificationMessages = ImmutableEquatableArray<NotificationMessageModel>.Empty;
         NotificationMessageHandlers = ImmutableEquatableArray<NotificationMessageHandlerModel>.Empty;
@@ -41,7 +42,8 @@ internal sealed record CompilationModel
         ImmutableEquatableArray<RequestMessageModel> requestMessages,
         ImmutableEquatableArray<NotificationMessageModel> notificationMessages,
         ImmutableEquatableArray<NotificationMessageHandlerModel> notificationMessageHandlers,
-        ImmutableEquatableArray<RequestMessageHandlerWrapperModel> requestMessageHandlerWrappers,
+        ImmutableEquatableArray<IRequestMessageHandlerWrapperModel> requestMessageHandlerWrappers,
+        ImmutableEquatableArray<IRequestMessageHandlerWrapperModel> requestNoResponseMessageHandlerWrappers,
         NotificationPublisherTypeModel notificationPublisherType,
         ImmutableEquatableArray<PipelineBehaviorModel> pipelineBehaviors,
         bool hasErrors,
@@ -74,6 +76,8 @@ internal sealed record CompilationModel
         PipelineBehaviors = pipelineBehaviors;
 
         RequestMessageHandlerWrappers = requestMessageHandlerWrappers;
+        RequestNoResponseMessageHandlerWrappers = requestNoResponseMessageHandlerWrappers;
+
         NotificationMessages = notificationMessages;
         NotificationMessageHandlers = new(notificationMessageHandlers);
 
@@ -160,8 +164,8 @@ internal sealed record CompilationModel
     public int TotalMessages { get; }
 
     public NotificationPublisherTypeModel NotificationPublisherType { get; }
-    public ImmutableEquatableArray<RequestMessageHandlerWrapperModel> RequestMessageHandlerWrappers { get; }
-
+    public ImmutableEquatableArray<IRequestMessageHandlerWrapperModel> RequestMessageHandlerWrappers { get; }
+    public ImmutableEquatableArray<IRequestMessageHandlerWrapperModel> RequestNoResponseMessageHandlerWrappers { get; }
     public ImmutableEquatableArray<RequestMessageModel> RequestMessages { get; }
 
     public ImmutableEquatableArray<NotificationMessageModel> NotificationMessages { get; }

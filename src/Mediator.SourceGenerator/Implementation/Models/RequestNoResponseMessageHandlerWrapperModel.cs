@@ -1,32 +1,22 @@
 namespace Mediator.SourceGenerator;
 
-internal sealed record RequestMessageHandlerWrapperModel : IRequestMessageHandlerWrapperModel
+internal sealed record RequestNoResponseMessageHandlerWrapperModel : IRequestMessageHandlerWrapperModel
 {
-    public RequestMessageHandlerWrapperModel(
-        string messageType,
-        CompilationAnalyzer analyzer,
-        bool isNoResponse = false
-    )
+    public RequestNoResponseMessageHandlerWrapperModel(string messageType, CompilationAnalyzer analyzer)
     {
-        IsNoResponse = isNoResponse;
         FullNamespace = $"global::{analyzer.MediatorNamespace}.Internals";
         MessageType = messageType;
-        IsStreaming = messageType.StartsWith("Stream", StringComparison.Ordinal);
-        TypeName = $"{messageType}HandlerWrapper";
-        TypeNameWithGenericParameters = IsNoResponse
-            ? $"{messageType}NoResponseHandlerWrapper<TRequest>"
-            : $"{messageType}HandlerWrapper<TRequest, TResponse>";
-        InterfaceTypeNameWithGenericParameter = IsNoResponse
-            ? $"I{messageType}NoResponseHandlerBase"
-            : $"I{messageType}HandlerBase<TResponse>";
+        TypeName = $"{messageType}NoResponseHandlerWrapper";
+        TypeNameWithGenericParameters = $"{messageType}NoResponseHandlerWrapper<TRequest>";
+        InterfaceTypeNameWithGenericParameter = $"I{messageType}NoResponseHandlerBase";
     }
 
     public string FullNamespace { get; }
     public string MessageType { get; }
     public string TypeName { get; }
-    public bool IsStreaming { get; }
+    public bool IsStreaming => false;
     public string TypeNameWithGenericParameters { get; }
-    public bool IsNoResponse { get; }
+    public bool IsNoResponse { get; } = true;
     public string InterfaceTypeNameWithGenericParameter { get; }
 
     public string MessageHandlerDelegateName =>

@@ -1,17 +1,17 @@
-﻿using Mediator.SourceGenerator.Extensions;
+using Mediator.SourceGenerator.Extensions;
 
 namespace Mediator.SourceGenerator;
 
 internal sealed record RequestMessageHandlerModel : SymbolMetadataModel
 {
     public string MessageType { get; }
-    public RequestMessageHandlerWrapperModel WrapperType { get; }
+    public IRequestMessageHandlerWrapperModel WrapperType { get; }
 
     public RequestMessageHandlerModel(
         INamedTypeSymbol symbol,
         string messageType,
         CompilationAnalyzer analyzer,
-        RequestMessageHandlerWrapperModel wrapperType
+        IRequestMessageHandlerWrapperModel wrapperType
     )
         : base(symbol)
     {

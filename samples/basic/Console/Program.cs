@@ -40,6 +40,16 @@ return response.Id == id ? 0 : 1;
 //
 // Here are the types used
 //
+public sealed class PingPong : IRequest;
+
+public sealed class PingPongHandler : IRequestHandler<PingPong>
+{
+    public ValueTask Handle(PingPong request, CancellationToken cancellationToken)
+    {
+        Console.WriteLine("5) pingpong!");
+        return ValueTask.CompletedTask;
+    }
+}
 
 public sealed record Ping(Guid Id) : IRequest<Pong>;
 

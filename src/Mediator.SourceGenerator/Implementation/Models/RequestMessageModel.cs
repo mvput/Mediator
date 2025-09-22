@@ -19,8 +19,8 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
         ITypeSymbol responseSymbol,
         string messageType,
         RequestMessageHandlerModel? handler,
-        RequestMessageHandlerWrapperModel wrapperType,
-        bool isUnitTypeResponse
+        IRequestMessageHandlerWrapperModel wrapperType,
+        bool isNoResponse
     )
         : base(symbol)
     {
@@ -49,8 +49,8 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
         Handler = handler;
 
         var fullHandlerWrapperTypeName = $"{wrapperType.FullNamespace}.{wrapperType.TypeName}";
-        HandlerWrapperTypeNameWithGenericTypeArguments = isUnitTypeResponse
-            ? $"{wrapperType.FullNamespace}.{wrapperType.MessageType}UnitHandlerWrapper<{FullName}, {ResponseFullName}>"
+        HandlerWrapperTypeNameWithGenericTypeArguments = isNoResponse
+            ? $"{fullHandlerWrapperTypeName}<{FullName}>"
             : $"{fullHandlerWrapperTypeName}<{FullName}, {ResponseFullName}>";
 
         var identifierFullName = symbol
@@ -60,10 +60,11 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
 
         HandlerWrapperPropertyName = $"Wrapper_For_{identifierFullName}";
         MethodName = isStreaming ? "CreateStream" : "Send";
-        ReturnType = isStreaming
-            ? $"global::System.Collections.Generic.IAsyncEnumerable<{ResponseFullName}>"
+        ReturnType =
+            isStreaming ? $"global::System.Collections.Generic.IAsyncEnumerable<{ResponseFullName}>"
+            : isNoResponse ? "global::System.Threading.Tasks.ValueTask"
             : $"global::System.Threading.Tasks.ValueTask<{ResponseFullName}>";
-        IsUnitTypeResponse = isUnitTypeResponse;
+        IsNoResponse = isNoResponse;
     }
 
     public string MessageType { get; }
@@ -71,7 +72,7 @@ internal sealed record RequestMessageModel : SymbolMetadataModel
     public RequestMessageHandlerModel? Handler { get; }
     public bool ResponseIsValueType { get; }
     public string ResponseFullName { get; }
-    public bool IsUnitTypeResponse { get; }
+    public bool IsNoResponse { get; }
     public string ResponseFullNameWithoutReferenceNullability { get; }
     public string HandlerWrapperTypeNameWithGenericTypeArguments { get; }
     public string HandlerWrapperPropertyName { get; }

@@ -27,7 +27,8 @@ internal sealed class CompilationAnalyzer
     private readonly List<PipelineBehaviorType> _pipelineBehaviors;
     private Queue<INamespaceOrTypeSymbol>? _configuredAssemblies;
 
-    public ImmutableArray<RequestMessageHandlerWrapperModel> RequestMessageHandlerWrappers;
+    public ImmutableArray<IRequestMessageHandlerWrapperModel> RequestMessageHandlerWrappers;
+    public ImmutableArray<IRequestMessageHandlerWrapperModel> RequestNoResponseMessageHandlerWrappers;
 
     private INamedTypeSymbol[] _baseHandlerSymbols;
     private INamedTypeSymbol[] _baseMessageSymbols;
@@ -116,14 +117,19 @@ internal sealed class CompilationAnalyzer
 
             TryParseConfiguration();
 
-            RequestMessageHandlerWrappers = new RequestMessageHandlerWrapperModel[]
+            RequestMessageHandlerWrappers = new IRequestMessageHandlerWrapperModel[]
             {
-                new RequestMessageHandlerWrapperModel("Request", this, true),
+                new RequestMessageHandlerWrapperModel("Request", this),
                 new RequestMessageHandlerWrapperModel("StreamRequest", this),
-                new RequestMessageHandlerWrapperModel("Command", this, true),
+                new RequestMessageHandlerWrapperModel("Command", this),
                 new RequestMessageHandlerWrapperModel("StreamCommand", this),
                 new RequestMessageHandlerWrapperModel("Query", this),
                 new RequestMessageHandlerWrapperModel("StreamQuery", this),
+            }.ToImmutableArray();
+            RequestNoResponseMessageHandlerWrappers = new IRequestMessageHandlerWrapperModel[]
+            {
+                new RequestNoResponseMessageHandlerWrapperModel("Request", this),
+                new RequestNoResponseMessageHandlerWrapperModel("Command", this),
             }.ToImmutableArray();
 
             TryLoadBaseMessageSymbols(out _baseMessageSymbols, out _notificationInterfaceSymbol);
@@ -351,6 +357,7 @@ internal sealed class CompilationAnalyzer
                 ToModelsSortedByInheritanceDepth(_notificationMessages, m => m.ToModel()),
                 _notificationMessageHandlers.Select(x => x.ToModel()).ToImmutableEquatableArray(),
                 RequestMessageHandlerWrappers.ToImmutableEquatableArray(),
+                RequestNoResponseMessageHandlerWrappers.ToImmutableEquatableArray(),
                 new NotificationPublisherTypeModel(
                     _notificationPublisherImplementationSymbol.GetTypeSymbolFullName(),
                     _notificationPublisherImplementationSymbol.Name
@@ -620,7 +627,17 @@ internal sealed class CompilationAnalyzer
                                 typeInterfaceSymbol.Name.IndexOf("Handler") - 1
                             );
 
-                            var handler = new RequestMessageHandler(typeSymbol, messageType, this);
+                            ITypeSymbol responseMessageSymbol =
+                                typeInterfaceSymbol.TypeArguments.Length > 1
+                                    ? typeInterfaceSymbol.TypeArguments[1]
+                                    : _unitSymbol;
+
+                            var handler = new RequestMessageHandler(
+                                typeSymbol,
+                                messageType,
+                                this,
+                                _symbolComparer.Equals(responseMessageSymbol, _unitSymbol)
+                            );
                             var requestMessageSymbol = (INamedTypeSymbol)typeInterfaceSymbol.TypeArguments[0];
                             if (mapping.TryGetValue(requestMessageSymbol, out var requestMessageObj))
                             {
@@ -679,7 +696,13 @@ internal sealed class CompilationAnalyzer
                                 ? typeInterfaceSymbol.Name.Substring(1)
                                 : typeInterfaceSymbol.Name.Substring(1, typeInterfaceSymbol.Name.IndexOf('<') - 1);
 
-                        var message = new RequestMessage(typeSymbol, responseMessageSymbol, messageType, this);
+                        var message = new RequestMessage(
+                            typeSymbol,
+                            responseMessageSymbol,
+                            messageType,
+                            this,
+                            _symbolComparer.Equals(responseMessageSymbol, _unitSymbol)
+                        );
                         if (!_requestMessages.Add(message))
                         {
                             // If this symbol has already been added,
