@@ -307,7 +307,7 @@ namespace {{ InternalsNamespace }}
                 yield return el;
         }
         {{~ else ~}}
-        public async {{ wrapperType.ReturnTypeNameWhenObject }} Handle(
+        public {{ wrapperType.ReturnTypeNameWhenObject }} Handle(
             {{~ if !ServiceLifetimeIsSingleton ~}}
             global::{{ MediatorNamespace }}.Mediator mediator,
             {{~ end ~}}
@@ -1171,6 +1171,7 @@ namespace {{ MediatorNamespace }}
             switch (request)
             {
                 {{~ for message in IRequestMessages ~}}
+                     {{~ if !message.IsNoResponse ~}}
                 case {{ message.FullName }} r:
                 {
                     if (typeof(TResponse) == typeof({{ message.ResponseFullNameWithoutReferenceNullability }}))
@@ -1180,6 +1181,7 @@ namespace {{ MediatorNamespace }}
                     }
                     return SendAsync(request, cancellationToken);
                 }
+                {{~ end ~}}
                 {{~ end ~}}
                 default:
                 {
@@ -1211,11 +1213,13 @@ namespace {{ MediatorNamespace }}
             switch (request)
             {
                 {{~ for message in IRequestMessages ~}}
+                {{~ if !message.IsNoResponse ~}}
                 case {{ message.FullName }} r:
                 {
                     var response = await Send(r, cancellationToken);
                     return global::System.Runtime.CompilerServices.Unsafe.As<{{ message.ResponseFullName }}, TResponse>(ref response);
                 }
+                {{~ end ~}}
                 {{~ end ~}}
                 default:
                 {
@@ -1247,9 +1251,9 @@ namespace {{ MediatorNamespace }}
             {{~ if HasRequests ~}}
             {{~ if HasManyRequests ~}}
             var handlerObj = GetRequestHandler(request);
-            if (handlerObj is global::{{ InternalsNamespace }}.IRequestHandlerBase)
+            if (handlerObj is global::{{ InternalsNamespace }}.IRequestNoResponseHandlerBase)
             {
-                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.IRequestHandlerBase>(ref handlerObj);
+                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.IRequestNoResponseHandlerBase>(ref handlerObj);
                 return new global::System.Threading.Tasks.ValueTask( handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}request, cancellationToken).AsTask());
             }
             return SendAsync(request, handlerObj, cancellationToken);
@@ -1297,7 +1301,7 @@ namespace {{ MediatorNamespace }}
                 {{~ if message.IsNoResponse ~}}
                 case {{ message.FullName }} r:
                 {
-                    _ = await Send(r, cancellationToken);
+                    await Send(r, cancellationToken);
                     return;
                 }
                 {{~ end ~}}
@@ -1443,11 +1447,13 @@ namespace {{ MediatorNamespace }}
             switch (command)
             {
                 {{~ for message in ICommandMessages ~}}
+                {{~ if !message.IsNoResponse ~}}
                 case {{ message.FullName }} r:
                 {
                     var response = await Send(r, cancellationToken);
                     return global::System.Runtime.CompilerServices.Unsafe.As<{{ message.ResponseFullName }}, TResponse>(ref response);
                 }
+                {{~ end ~}}
                 {{~ end ~}}
                 default:
                 {
@@ -1479,9 +1485,9 @@ namespace {{ MediatorNamespace }}
             {{~ if HasCommands ~}}
             {{~ if HasManyCommands ~}}
             var handlerObj = GetCommandHandler(command);
-            if (handlerObj is global::{{ InternalsNamespace }}.ICommandHandlerBase)
+            if (handlerObj is global::{{ InternalsNamespace }}.ICommandNoResponseHandlerBase)
             {
-                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.ICommandHandlerBase>(ref handlerObj);
+                ref var handler = ref global::System.Runtime.CompilerServices.Unsafe.As<object, global::{{ InternalsNamespace }}.ICommandNoResponseHandlerBase>(ref handlerObj);
                 return new global::System.Threading.Tasks.ValueTask( handler.Handle({{ if !ServiceLifetimeIsSingleton; "this, "; end; }}command, cancellationToken).AsTask());
             }
             return SendAsync(command, handlerObj, cancellationToken);
@@ -1786,7 +1792,9 @@ namespace {{ MediatorNamespace }}
                     switch (request)
                     {
                         {{~ for message in IRequestMessages ~}}
+                        {{~ if !message.IsNoResponse ~}}
                         case {{ message.FullName }} r: return await Send(r, cancellationToken);
+                        {{~ end ~}}
                         {{~ end ~}}
                         default:
                         {
@@ -1810,7 +1818,9 @@ namespace {{ MediatorNamespace }}
                     switch (command)
                     {
                         {{~ for message in ICommandMessages ~}}
+                        {{~ if !message.IsNoResponse ~}}
                         case {{ message.FullName }} r: return await Send(r, cancellationToken);
+                        {{~ end ~}}
                         {{~ end ~}}
                         default:
                         {
